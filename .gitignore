@@ -1,0 +1,6 @@
+node_modules/
+.env
+
+# Ignore uploaded files but keep the directory tracked
+uploads/*
+!uploads/.gitkeep
