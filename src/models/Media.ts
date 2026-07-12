@@ -1,9 +1,27 @@
-// models/Media.js — Mongoose schema/model for a media library item.
-const mongoose = require('mongoose');
+// models/Media.ts — Mongoose schema/model for a media library item.
+import mongoose, { Schema, Model, HydratedDocument } from 'mongoose';
 
-const CATEGORIES = ['image', 'document', 'video', 'audio', 'other'];
+export const CATEGORIES = ['image', 'document', 'video', 'audio', 'other'] as const;
+export type Category = (typeof CATEGORIES)[number];
 
-const mediaSchema = new mongoose.Schema(
+// Shape of a media document's own fields (timestamps added by the schema option).
+export interface IMedia {
+  title: string;
+  tags: string[];
+  category: Category;
+  filePath: string;
+  originalName: string;
+  mimeType: string;
+  fileSize: number;
+  deletedAt: Date | null;
+  thumbnailPath: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type MediaDocument = HydratedDocument<IMedia>;
+
+const mediaSchema = new Schema<IMedia>(
   {
     title: {
       type: String,
@@ -14,7 +32,7 @@ const mediaSchema = new mongoose.Schema(
       type: [String],
       default: [],
       // Normalize each tag: lowercase + trim.
-      set: (tags) =>
+      set: (tags: unknown) =>
         Array.isArray(tags)
           ? tags.map((tag) => String(tag).trim().toLowerCase())
           : tags,
@@ -59,7 +77,6 @@ mediaSchema.index({ title: 'text' });
 // Exact-match filtering on category.
 mediaSchema.index({ category: 1 });
 
-const Media = mongoose.model('Media', mediaSchema);
+export const Media: Model<IMedia> = mongoose.model<IMedia>('Media', mediaSchema);
 
-module.exports = Media;
-module.exports.CATEGORIES = CATEGORIES;
+export default Media;

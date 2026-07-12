@@ -1,13 +1,14 @@
-// middlewares/errorHandler.js — central error handler. Registered LAST in
-// app.js. Translates known error types into the standard error envelope:
+// middlewares/errorHandler.ts — central error handler. Registered LAST in
+// app.ts. Translates known error types into the standard error envelope:
 //   { status: "error", message, details? }
-const multer = require('multer');
-const mongoose = require('mongoose');
-const AppError = require('../utils/AppError');
-const config = require('../config/env');
+import { ErrorRequestHandler } from 'express';
+import multer from 'multer';
+import mongoose from 'mongoose';
+import AppError, { ErrorDetail } from '../utils/AppError';
+import config from '../config/env';
 
 // Friendly messages for Multer's error codes.
-function multerMessage(err) {
+function multerMessage(err: multer.MulterError): string {
   switch (err.code) {
     case 'LIMIT_FILE_SIZE':
       return 'File too large — max 5MB';
@@ -20,11 +21,10 @@ function multerMessage(err) {
   }
 }
 
-// eslint-disable-next-line no-unused-vars
-function errorHandler(err, req, res, next) {
+const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
   let statusCode = 500;
   let message = 'Internal server error';
-  let details;
+  let details: ErrorDetail[] | undefined;
 
   if (err instanceof AppError) {
     statusCode = err.statusCode;
@@ -47,16 +47,22 @@ function errorHandler(err, req, res, next) {
 
   // Always log the full error server-side for diagnosis.
   if (statusCode >= 500) {
-    // eslint-disable-next-line no-console
     console.error(err);
   }
 
-  const body = { status: 'error', message };
+  const body: {
+    status: 'error';
+    message: string;
+    details?: ErrorDetail[];
+    stack?: string;
+  } = { status: 'error', message };
   if (details && details.length) body.details = details;
   // Never leak stack traces in production; expose them otherwise for debugging.
-  if (!config.isProduction && statusCode >= 500) body.stack = err.stack;
+  if (!config.isProduction && statusCode >= 500 && err instanceof Error) {
+    body.stack = err.stack;
+  }
 
   res.status(statusCode).json(body);
-}
+};
 
-module.exports = errorHandler;
+export default errorHandler;

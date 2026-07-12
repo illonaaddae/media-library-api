@@ -1,9 +1,9 @@
-// app.js — builds and configures the Express application. No DB connection or
-// server.listen here; server.js owns process lifecycle.
-const express = require('express');
-const mediaRoutes = require('./routes/mediaRoutes');
-const notFound = require('./middlewares/notFound');
-const errorHandler = require('./middlewares/errorHandler');
+// app.ts — builds and configures the Express application. No DB connection or
+// server.listen here; server.ts owns process lifecycle.
+import express from 'express';
+import mediaRoutes from './routes/mediaRoutes';
+import notFound from './middlewares/notFound';
+import errorHandler from './middlewares/errorHandler';
 
 const app = express();
 
@@ -12,7 +12,7 @@ const app = express();
 app.use(express.json());
 
 // Health check.
-app.get('/health', (req, res) => {
+app.get('/health', (_req, res) => {
   res.status(200).json({ status: 'success', data: { uptime: process.uptime() } });
 });
 
@@ -23,4 +23,4 @@ app.use('/media', mediaRoutes);
 app.use(notFound);
 app.use(errorHandler);
 
-module.exports = app;
+export default app;

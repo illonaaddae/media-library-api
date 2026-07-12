@@ -1,17 +1,17 @@
-// routes/mediaRoutes.js — route definitions only. No business logic: each route
+// routes/mediaRoutes.ts — route definitions only. No business logic: each route
 // is a middleware chain ending in a controller reference.
-const express = require('express');
-const { uploadSingle, uploadArray } = require('../middlewares/upload');
-const validate = require('../middlewares/validate');
-const {
+import { Router } from 'express';
+import { uploadSingle, uploadArray } from '../middlewares/upload';
+import validate from '../middlewares/validate';
+import {
   createMediaSchema,
   updateMediaSchema,
   mediaQuerySchema,
   idParamSchema,
-} = require('../schemas/mediaSchemas');
-const controller = require('../controllers/mediaController');
+} from '../schemas/mediaSchemas';
+import controller from '../controllers/mediaController';
 
-const router = express.Router();
+const router = Router();
 
 router
   .route('/')
@@ -48,4 +48,4 @@ router
   .route('/:id/restore')
   .post(validate(idParamSchema, 'params'), controller.restoreMedia);
 
-module.exports = router;
+export default router;

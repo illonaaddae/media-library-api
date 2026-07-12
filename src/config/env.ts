@@ -1,17 +1,14 @@
-// config/env.js — load .env and validate required environment variables at
+// config/env.ts — load .env and validate required environment variables at
 // startup with a Zod schema on process.env. Fail fast, naming the offending var.
-require('dotenv').config();
-
-const { z } = require('zod');
+import 'dotenv/config';
+import { z } from 'zod';
 
 // Schema describing every environment variable the app relies on. Coercions
 // keep the exported config strongly typed (numbers as numbers, not strings).
 const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(3000),
   DB_URI: z.string().min(1, 'DB_URI is required'),
-  NODE_ENV: z
-    .enum(['development', 'test', 'production'])
-    .default('development'),
+  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   UPLOAD_DIR: z.string().min(1).default('uploads'),
   MAX_FILE_SIZE: z.coerce
     .number()
@@ -27,7 +24,6 @@ if (!parsed.success) {
   const details = parsed.error.issues
     .map((issue) => `  - ${issue.path.join('.')}: ${issue.message}`)
     .join('\n');
-  // eslint-disable-next-line no-console
   console.error(`Invalid environment configuration:\n${details}`);
   process.exit(1);
 }
@@ -42,4 +38,6 @@ const config = Object.freeze({
   isProduction: parsed.data.NODE_ENV === 'production',
 });
 
-module.exports = config;
+export type Config = typeof config;
+
+export default config;

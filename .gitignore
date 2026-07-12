@@ -1,4 +1,5 @@
 node_modules/
+dist/
 .env
 
 # Ignore uploaded files but keep the directory tracked

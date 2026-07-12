@@ -1,15 +1,19 @@
-// middlewares/validate.js — reusable validation factory.
+// middlewares/validate.ts — reusable validation factory.
 // validate(schema, source) parses req[source] with a Zod schema, replaces it
 // with the parsed (coerced/transformed) value, and on failure forwards a 400
 // AppError carrying field-level details.
-const AppError = require('../utils/AppError');
+import { RequestHandler } from 'express';
+import { ZodType } from 'zod';
+import AppError, { ErrorDetail } from '../utils/AppError';
 
-function validate(schema, source = 'body') {
+type Source = 'body' | 'query' | 'params';
+
+function validate(schema: ZodType, source: Source = 'body'): RequestHandler {
   return (req, res, next) => {
     const result = schema.safeParse(req[source]);
 
     if (!result.success) {
-      const details = result.error.issues.map((issue) => ({
+      const details: ErrorDetail[] = result.error.issues.map((issue) => ({
         field: issue.path.join('.') || source,
         message: issue.message,
       }));
@@ -30,4 +34,4 @@ function validate(schema, source = 'body') {
   };
 }
 
-module.exports = validate;
+export default validate;
