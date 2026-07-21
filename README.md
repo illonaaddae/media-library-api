@@ -14,7 +14,9 @@ uses one consistent JSON envelope.
 - **Validation:** Zod (one reusable middleware, field-level error details)
 - **Uploads:** Multer (disk storage, 5MB cap, JPEG/PNG/PDF only by MIME type)
 - **Thumbnails:** sharp (200px-wide thumbnail per image)
-- **Config:** dotenv + startup environment validation (fail fast)
+- **Config:** dotenv-flow (per-environment files) + Zod startup validation (fail fast)
+- **Logging:** Pino structured logs (`pino-http`; `pino-pretty` in development)
+- **Deploy:** Vercel serverless function (`@vercel/node`)
 
 ## Setup
 
@@ -24,24 +26,28 @@ uses one consistent JSON envelope.
    npm install
    ```
 
-2. Create a `.env` from the template and fill in the values:
+2. Create the per-environment file from the template and fill in values.
+   `dotenv-flow` loads the file matching `NODE_ENV` — `.env.development`,
+   `.env.test`, or `.env.production`:
 
    ```bash
-   cp .env.example .env
+   cp .env.example .env.development
    ```
 
-   | Key             | Meaning                                        | Example                                      |
-   |-----------------|------------------------------------------------|----------------------------------------------|
-   | `PORT`          | HTTP port the server listens on                | `3000`                                        |
-   | `DB_URI`        | MongoDB connection string                      | `mongodb://127.0.0.1:27017/media_library`     |
-   | `NODE_ENV`      | `development` \| `test` \| `production`         | `development`                                 |
-   | `UPLOAD_DIR`    | Directory Multer writes uploads into           | `uploads`                                     |
-   | `MAX_FILE_SIZE` | Max upload size in bytes (rejected above this) | `5242880` (5MB)                               |
+   | Key                | Meaning                                             | Example                                    |
+   |--------------------|-----------------------------------------------------|--------------------------------------------|
+   | `NODE_ENV`         | `development` \| `test` \| `production`              | `development`                              |
+   | `PORT`             | HTTP port the server listens on                     | `3000`                                      |
+   | `DATABASE_URL`     | MongoDB connection string                           | `mongodb://127.0.0.1:27017/media_library`   |
+   | `JWT_SECRET`       | Reserved for the future auth extension (optional)   | `<long random string>`                      |
+   | `MAX_FILE_SIZE_MB` | Max upload size in **megabytes** (bytes in config)  | `5`                                         |
+   | `UPLOAD_DIR`       | Directory Multer writes uploads into                | `uploads`                                   |
+   | `LOG_LEVEL`        | `debug` \| `info` \| `warn` \| `error`                | `info`                                      |
 
    Every variable is validated at startup by a Zod schema in
    `src/config/env.ts`. A missing or invalid variable is a fatal configuration
-   error: the process logs the offending variable by name and exits before the
-   server starts.
+   error: the process names the offending variable and exits before the server
+   starts.
 
 3. Run the server:
 
@@ -54,6 +60,73 @@ uses one consistent JSON envelope.
 
    `dev` executes the TypeScript sources directly (no build step). For
    production, `build` emits JavaScript to `dist/` and `start` runs it.
+
+## Deployment (Vercel)
+
+**Live URL:** `https://<your-app>.vercel.app` — health check at `/health`.
+_(placeholder — replaced with the real URL once deployed)_
+
+The app runs on Vercel as a **serverless function**. `api/index.ts` is the
+Vercel entry: it reuses a **cached Mongoose connection** across warm invocations
+(never reconnecting per request) and exports the Express app; `vercel.json`
+routes all traffic to it. `server.ts` (`app.listen` + graceful shutdown) is the
+local/dev entry only.
+
+### Deploy steps
+
+1. **MongoDB Atlas (free tier).** Create a free **M0** cluster, add a database
+   user, and allow network access from anywhere (`0.0.0.0/0` — Vercel's egress
+   IPs are dynamic). Copy the `mongodb+srv://…` connection string and insert the
+   password and a database name, e.g.
+   `mongodb+srv://user:pass@cluster.mongodb.net/media_library?retryWrites=true&w=majority`.
+2. **Import the repo into Vercel** (GitHub integration → auto-deploys `main`).
+   No build settings are needed — `vercel.json` + `@vercel/node` handle it.
+3. **Set Production environment variables** (Vercel → Settings → Environment
+   Variables):
+
+   | Key                | Value                                              |
+   |--------------------|----------------------------------------------------|
+   | `NODE_ENV`         | `production`                                        |
+   | `DATABASE_URL`     | your Atlas `mongodb+srv://…` string                 |
+   | `JWT_SECRET`       | a long random string (reserved for future auth)     |
+   | `MAX_FILE_SIZE_MB` | `5`                                                 |
+   | `UPLOAD_DIR`       | `/tmp/uploads`                                      |
+   | `LOG_LEVEL`        | `info`                                              |
+
+4. **Deploy** (automatic on push to `main`, or the dashboard **Deploy** button),
+   then verify: `curl https://<your-app>.vercel.app/health`.
+5. Point Postman's **Production** environment `BASE_URL` at the live URL and run
+   the collection in `postman/`.
+
+### Vercel limitations
+
+Serverless functions differ from a long-lived server in ways that matter here:
+
+- **Ephemeral filesystem.** Only `/tmp` is writable, and it is **not durable**:
+  files Multer writes during one invocation do not persist and are not shared
+  across instances. An upload still returns `201` and its **metadata record is
+  created**, but the stored bytes may disappear on the next cold start. This is
+  why `UPLOAD_DIR` is `/tmp/uploads` in production — an accepted limitation.
+- **Cold starts.** An idle function is torn down; the next request pays a
+  startup cost and re-establishes the Mongo connection (hence the cached
+  connection in `api/index.ts`).
+- **No long-lived processes.** There is no persistent `listen`, no background
+  work, and the process-level handlers (`SIGTERM`/`SIGINT` graceful shutdown,
+  `unhandledRejection`) are effectively **dev-only** — Vercel owns the lifecycle.
+
+### Production file handling (the real fix)
+
+Local disk storage is a development convenience. In production, file bytes
+belong in **object storage** — **AWS S3** or **Cloudinary** — not on the
+function's disk:
+
+- Replace Multer's disk storage with a **stream to the storage SDK** (e.g.
+  `multer-s3`, or Multer memory storage piped into the S3/Cloudinary SDK) in the
+  upload middleware.
+- Persist only the returned **object URL + metadata** in Mongo (the bucket URL
+  replaces `filePath`); sharp thumbnails are uploaded the same way.
+- Serve files from the bucket/CDN rather than the API. Uploads then become
+  durable, shared across instances, and independent of the function lifecycle.
 
 ## Folder structure
 

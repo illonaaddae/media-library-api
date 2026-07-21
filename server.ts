@@ -7,6 +7,7 @@ import './src/config/crashHandler';
 
 import { Server } from 'http';
 import config from './src/config/env'; // validates env at import time
+import logger from './src/config/logger';
 import app from './src/app';
 import { connectDB, disconnectDB } from './src/config/db';
 
@@ -16,14 +17,13 @@ async function start(): Promise<void> {
   await connectDB();
 
   server = app.listen(config.port, () => {
-    console.log(`Server listening on port ${config.port} [${config.nodeEnv}]`);
+    logger.info(`Server listening on port ${config.port} [${config.nodeEnv}]`);
   });
 }
 
 // Unhandled promise rejection — close the server gracefully, then exit.
 process.on('unhandledRejection', (reason) => {
-  console.error('UNHANDLED REJECTION — shutting down');
-  console.error(reason);
+  logger.error({ err: reason }, 'UNHANDLED REJECTION — shutting down');
   if (server) {
     server.close(() => process.exit(1));
   } else {
@@ -34,7 +34,7 @@ process.on('unhandledRejection', (reason) => {
 // Graceful shutdown on termination signals: stop accepting connections, then
 // disconnect Mongoose.
 async function shutdown(signal: string): Promise<void> {
-  console.log(`${signal} received — shutting down gracefully`);
+  logger.info(`${signal} received — shutting down gracefully`);
   if (server) {
     await new Promise<void>((resolve) => {
       server!.close(() => resolve());
@@ -47,14 +47,13 @@ async function shutdown(signal: string): Promise<void> {
 (['SIGTERM', 'SIGINT'] as const).forEach((signal) => {
   process.on(signal, () => {
     shutdown(signal).catch((err) => {
-      console.error(err);
+      logger.error({ err }, 'Error during graceful shutdown');
       process.exit(1);
     });
   });
 });
 
 start().catch((err) => {
-  console.error('Failed to start server');
-  console.error(err);
+  logger.error({ err }, 'Failed to start server');
   process.exit(1);
 });

@@ -1,0 +1,190 @@
+{
+  "info": {
+    "_postman_id": "0a1b2c3d-0001-4000-8000-000000000001",
+    "name": "Media Library API",
+    "description": "Media Library API endpoints. Run top-to-bottom: POST /media stores the created id in {{MEDIA_ID}} so the GET/PUT/DELETE-by-id requests chain off it. All URLs use {{BASE_URL}}.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "GET /health",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status code is 200', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.test(\"status field is 'ok'\", function () { pm.expect(json.status).to.eql('ok'); });",
+              "pm.test('uptime is a number', function () { pm.expect(json.uptime).to.be.a('number'); });",
+              "pm.test('timestamp is present', function () { pm.expect(json.timestamp).to.be.a('string'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{BASE_URL}}/health",
+          "host": ["{{BASE_URL}}"],
+          "path": ["health"]
+        }
+      }
+    },
+    {
+      "name": "POST /media",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status code is 201', function () { pm.response.to.have.status(201); });",
+              "const json = pm.response.json();",
+              "pm.test(\"status field is 'success'\", function () { pm.expect(json.status).to.eql('success'); });",
+              "pm.test('data._id is present', function () { pm.expect(json.data._id).to.be.a('string'); });",
+              "pm.test('data.title matches request', function () { pm.expect(json.data.title).to.eql('Postman Upload'); });",
+              "pm.environment.set('MEDIA_ID', json.data._id);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            { "key": "title", "value": "Postman Upload", "type": "text" },
+            { "key": "category", "value": "image", "type": "text" },
+            { "key": "file", "type": "file", "src": "src/tests/fixtures/pixel.jpg" }
+          ]
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/media",
+          "host": ["{{BASE_URL}}"],
+          "path": ["media"]
+        }
+      }
+    },
+    {
+      "name": "GET /media",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status code is 200', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.test(\"status field is 'success'\", function () { pm.expect(json.status).to.eql('success'); });",
+              "pm.test('data.pagination.total is a number', function () { pm.expect(json.data.pagination.total).to.be.a('number'); });",
+              "pm.test('data.pagination.totalPages is a number', function () { pm.expect(json.data.pagination.totalPages).to.be.a('number'); });",
+              "pm.test('data.results is an array', function () { pm.expect(json.data.results).to.be.an('array'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{BASE_URL}}/media?page=1&limit=10",
+          "host": ["{{BASE_URL}}"],
+          "path": ["media"],
+          "query": [
+            { "key": "page", "value": "1" },
+            { "key": "limit", "value": "10" },
+            { "key": "category", "value": "image", "disabled": true },
+            { "key": "search", "value": "postman", "disabled": true }
+          ]
+        }
+      }
+    },
+    {
+      "name": "GET /media/:id",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status code is 200', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.test(\"status field is 'success'\", function () { pm.expect(json.status).to.eql('success'); });",
+              "pm.test('data.title is present', function () { pm.expect(json.data.title).to.be.a('string'); });",
+              "pm.test('data._id matches MEDIA_ID', function () { pm.expect(json.data._id).to.eql(pm.environment.get('MEDIA_ID')); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{BASE_URL}}/media/{{MEDIA_ID}}",
+          "host": ["{{BASE_URL}}"],
+          "path": ["media", "{{MEDIA_ID}}"]
+        }
+      }
+    },
+    {
+      "name": "PUT /media/:id",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status code is 200', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.test(\"status field is 'success'\", function () { pm.expect(json.status).to.eql('success'); });",
+              "pm.test('data.title was updated', function () { pm.expect(json.data.title).to.eql('Updated via Postman'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Updated via Postman\"\n}"
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/media/{{MEDIA_ID}}",
+          "host": ["{{BASE_URL}}"],
+          "path": ["media", "{{MEDIA_ID}}"]
+        }
+      }
+    },
+    {
+      "name": "DELETE /media/:id",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status code is 200', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.test(\"status field is 'success'\", function () { pm.expect(json.status).to.eql('success'); });",
+              "pm.test('data.deleted matches MEDIA_ID', function () { pm.expect(json.data.deleted).to.eql(pm.environment.get('MEDIA_ID')); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{BASE_URL}}/media/{{MEDIA_ID}}",
+          "host": ["{{BASE_URL}}"],
+          "path": ["media", "{{MEDIA_ID}}"]
+        }
+      }
+    }
+  ]
+}

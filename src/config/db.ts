@@ -1,11 +1,12 @@
 // config/db.ts — Mongoose connection helper.
 import mongoose, { Connection } from 'mongoose';
 import config from './env';
+import logger from './logger';
 
 // Connect to MongoDB. Rejects on failure so server.ts can decide to exit.
 export async function connectDB(): Promise<Connection> {
-  await mongoose.connect(config.dbUri);
-  console.log('MongoDB connected');
+  await mongoose.connect(config.databaseUrl);
+  logger.info('MongoDB connected');
   return mongoose.connection;
 }
 

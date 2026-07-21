@@ -6,6 +6,7 @@ import multer from 'multer';
 import mongoose from 'mongoose';
 import AppError, { ErrorDetail } from '../utils/AppError';
 import config from '../config/env';
+import logger from '../config/logger';
 
 // Friendly messages for Multer's error codes.
 function multerMessage(err: multer.MulterError): string {
@@ -45,9 +46,14 @@ const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
     message = `Invalid value for ${err.path}`;
   }
 
-  // Always log the full error server-side for diagnosis.
+  // Log at a level that matches severity: client mistakes are warnings,
+  // unexpected failures are errors (with the full error for diagnosis).
   if (statusCode >= 500) {
-    console.error(err);
+    logger.error({ err }, message);
+  } else if (statusCode === 404) {
+    logger.warn(message);
+  } else if (statusCode === 400 && details && details.length) {
+    logger.warn({ details }, message);
   }
 
   const body: {
