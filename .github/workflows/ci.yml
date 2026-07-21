@@ -23,9 +23,16 @@ jobs:
         run: npm ci
 
       # No Mongo service container needed — mongodb-memory-server downloads and
-      # runs its own mongod binary for the test suite.
+      # runs its own mongod binary for the test suite. The .env.test file is
+      # gitignored, so the test env is provided here; DATABASE_URL is a
+      # throwaway (mongodb-memory-server overrides the real connection).
       - name: Run tests with coverage
         run: npm run test:coverage
+        env:
+          NODE_ENV: test
+          DATABASE_URL: mongodb://127.0.0.1:27017/media_library_test
+          UPLOAD_DIR: uploads_test
+          LOG_LEVEL: error
 
       # Upload the coverage report even if the run fails the threshold, so it's
       # available for inspection on every run.
