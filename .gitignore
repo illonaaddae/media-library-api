@@ -1,7 +1,14 @@
 node_modules/
 dist/
-.env
+coverage/
+
+# Environment files: ignore all, commit only the template.
+.env*
+!.env.example
 
 # Ignore uploaded files but keep the directory tracked
 uploads/*
 !uploads/.gitkeep
+
+# Test upload directory (created by the test suite)
+uploads_test/

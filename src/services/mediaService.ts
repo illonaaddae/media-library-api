@@ -10,6 +10,7 @@ import { QueryFilter, SortOrder } from 'mongoose';
 import mediaRepository from '../repositories/mediaRepository';
 import AppError from '../utils/AppError';
 import config from '../config/env';
+import logger from '../config/logger';
 import { IMedia, MediaDocument } from '../models/Media';
 import { CreateMediaInput, UpdateMediaInput, MediaQuery } from '../schemas/mediaSchemas';
 
@@ -40,7 +41,7 @@ async function generateThumbnail(fileInfo: FileInfo): Promise<string | null> {
     return thumbPath;
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.warn(`Thumbnail generation failed for "${fileInfo.filePath}": ${message}`);
+    logger.warn(`Thumbnail generation failed for "${fileInfo.filePath}": ${message}`);
     return null;
   }
 }
@@ -53,7 +54,7 @@ async function safeUnlink(filePath: string | null | undefined): Promise<void> {
     await fs.unlink(filePath);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.warn(`Could not delete file "${filePath}": ${message}`);
+    logger.warn(`Could not delete file "${filePath}": ${message}`);
   }
 }
 
@@ -67,7 +68,12 @@ async function createMedia(
     throw new AppError(400, 'File is required');
   }
   const thumbnailPath = await generateThumbnail(fileInfo);
-  return mediaRepository.create({ ...metadata, ...fileInfo, thumbnailPath });
+  const media = await mediaRepository.create({ ...metadata, ...fileInfo, thumbnailPath });
+  logger.info(
+    { filename: fileInfo.originalName, size: fileInfo.fileSize },
+    'File uploaded'
+  );
+  return media;
 }
 
 // Bulk create: shared metadata applies to every file. Thumbnails for all

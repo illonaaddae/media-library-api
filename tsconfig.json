@@ -8,11 +8,13 @@
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "strict": true,
+    // Ambient/global type packages. Other @types/* are resolved via imports.
+    "types": ["node", "jest"],
     "resolveJsonModule": true,
     "sourceMap": true,
     "declaration": false,
     "skipLibCheck": true
   },
-  "include": ["src/**/*.ts", "server.ts"],
+  "include": ["src/**/*.ts", "server.ts", "api/**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }

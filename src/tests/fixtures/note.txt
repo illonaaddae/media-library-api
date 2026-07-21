@@ -1,0 +1,1 @@
+This is a plain text file used to test unsupported-type rejection.
