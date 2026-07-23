@@ -1,5 +1,14 @@
 {
   "version": 2,
-  "builds": [{ "src": "api/index.ts", "use": "@vercel/node" }],
-  "routes": [{ "src": "/(.*)", "dest": "api/index.ts" }]
+  "builds": [
+    { "src": "api/index.ts", "use": "@vercel/node" },
+    { "src": "web/package.json", "use": "@vercel/static-build", "config": { "distDir": "dist" } }
+  ],
+  "routes": [
+    { "src": "/media(.*)", "dest": "api/index.ts" },
+    { "src": "/health", "dest": "api/index.ts" },
+    { "src": "/uploads/(.*)", "dest": "api/index.ts" },
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/index.html" }
+  ]
 }

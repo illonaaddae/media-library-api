@@ -7,6 +7,9 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "dev": "tsx watch server.ts",
+    "dev:web": "npm --prefix web run dev",
+    "dev:all": "concurrently -n api,web -c blue,magenta \"npm run dev\" \"npm run dev:web\"",
+    "build:web": "npm --prefix web run build",
     "typecheck": "tsc --noEmit",
     "test": "jest --runInBand --forceExit",
     "test:coverage": "jest --coverage"
@@ -34,6 +37,7 @@
     "@types/multer": "^2.2.0",
     "@types/node": "^26.1.1",
     "@types/supertest": "^7.2.1",
+    "concurrently": "^10.0.3",
     "jest": "^30.4.2",
     "mongodb-memory-server": "^11.2.0",
     "pino-pretty": "^13.1.3",

@@ -1,7 +1,9 @@
 // app.ts — builds and configures the Express application. No DB connection or
-// server.listen here; server.ts owns process lifecycle.
+// server.listen here; server.ts owns process lifecycle. The React frontend
+// (web/) is served separately: by Vite in dev and by Vercel's CDN in prod.
 import express from "express";
 import pinoHttp from "pino-http";
+import config from "./config/env";
 import logger from "./config/logger";
 import mediaRoutes from "./routes/mediaRoutes";
 import healthRoute from "./routes/healthRoute";
@@ -16,6 +18,10 @@ app.use(pinoHttp({ logger }));
 // Parse JSON request bodies. Multipart (file uploads) is handled per-route by
 // Multer, not here.
 app.use(express.json());
+
+// Serve uploaded files + thumbnails so the UI can render them. On Vercel these
+// live in the ephemeral /tmp and won't persist — the UI falls back to an icon.
+app.use("/uploads", express.static(config.uploadDir));
 
 // Health check — no DB dependency.
 app.use("/health", healthRoute);
