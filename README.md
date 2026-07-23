@@ -63,8 +63,8 @@ uses one consistent JSON envelope.
 
 ## Deployment (Vercel)
 
-**Live URL:** `https://<your-app>.vercel.app` — health check at `/health`.
-_(placeholder — replaced with the real URL once deployed)_
+**Live URL:** https://media-library-api-seven.vercel.app — health check at
+[`/health`](https://media-library-api-seven.vercel.app/health).
 
 The app runs on Vercel as a **serverless function**. `api/index.ts` is the
 Vercel entry: it reuses a **cached Mongoose connection** across warm invocations
@@ -94,7 +94,7 @@ local/dev entry only.
    | `LOG_LEVEL`        | `info`                                              |
 
 4. **Deploy** (automatic on push to `main`, or the dashboard **Deploy** button),
-   then verify: `curl https://<your-app>.vercel.app/health`.
+   then verify: `curl https://media-library-api-seven.vercel.app/health`.
 5. Point Postman's **Production** environment `BASE_URL` at the live URL and run
    the collection in `postman/`.
 
