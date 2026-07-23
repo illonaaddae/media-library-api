@@ -8,7 +8,8 @@
     { "src": "/media(.*)", "dest": "api/index.ts" },
     { "src": "/health", "dest": "api/index.ts" },
     { "src": "/uploads/(.*)", "dest": "api/index.ts" },
-    { "handle": "filesystem" },
-    { "src": "/(.*)", "dest": "/index.html" }
+    { "src": "/assets/(.*)", "dest": "/web/assets/$1" },
+    { "src": "/(.+\\.(?:js|css|svg|png|jpe?g|ico|json|txt|map|webp|woff2?))", "dest": "/web/$1" },
+    { "src": "/(.*)", "dest": "/web/index.html" }
   ]
 }
