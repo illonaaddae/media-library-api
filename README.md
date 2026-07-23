@@ -3,8 +3,8 @@
 A RESTful API for a content team's media library. It accepts image and PDF
 uploads with metadata, stores files on disk via Multer, and exposes search,
 filtering, sorting, and pagination over the collection. All input is validated
-with Zod before any controller runs, and every response — success or failure —
-uses one consistent JSON envelope.
+with Zod before any controller runs, and every response, whether success or
+failure, uses one consistent JSON envelope.
 
 ## Stack
 
@@ -27,8 +27,8 @@ uses one consistent JSON envelope.
    ```
 
 2. Create the per-environment file from the template and fill in values.
-   `dotenv-flow` loads the file matching `NODE_ENV` — `.env.development`,
-   `.env.test`, or `.env.production`:
+   `dotenv-flow` loads whichever file matches `NODE_ENV`, one of
+   `.env.development`, `.env.test`, or `.env.production`:
 
    ```bash
    cp .env.example .env.development
@@ -52,10 +52,10 @@ uses one consistent JSON envelope.
 3. Run the server:
 
    ```bash
-   npm run dev        # tsx watch — runs TypeScript directly, auto-restart
+   npm run dev        # tsx watch, runs TypeScript directly with auto-restart
    npm run build      # tsc → compiles src/ + server.ts into dist/
    npm start          # runs the compiled dist/server.js
-   npm run typecheck  # tsc --noEmit — type-check without emitting
+   npm run typecheck  # tsc --noEmit, type-check without emitting
    ```
 
    `dev` executes the TypeScript sources directly (no build step). For
@@ -63,7 +63,7 @@ uses one consistent JSON envelope.
 
 ## Deployment (Vercel)
 
-**Live URL:** https://media-library-api-seven.vercel.app — health check at
+**Live URL:** https://media-library-api-seven.vercel.app, health check at
 [`/health`](https://media-library-api-seven.vercel.app/health).
 
 The app runs on Vercel as a **serverless function**. `api/index.ts` is the
@@ -75,19 +75,19 @@ local/dev entry only.
 ### Deploy steps
 
 1. **MongoDB Atlas (free tier).** Create a free **M0** cluster, add a database
-   user, and allow network access from anywhere (`0.0.0.0/0` — Vercel's egress
-   IPs are dynamic). Copy the `mongodb+srv://…` connection string and insert the
+   user, and allow network access from anywhere (`0.0.0.0/0`, because Vercel's
+   egress IPs are dynamic). Copy the `mongodb+srv://...` connection string and insert the
    password and a database name, e.g.
    `mongodb+srv://user:pass@cluster.mongodb.net/media_library?retryWrites=true&w=majority`.
 2. **Import the repo into Vercel** (GitHub integration → auto-deploys `main`).
-   No build settings are needed — `vercel.json` + `@vercel/node` handle it.
+   No build settings are needed; `vercel.json` + `@vercel/node` handle it.
 3. **Set Production environment variables** (Vercel → Settings → Environment
    Variables):
 
    | Key                | Value                                              |
    |--------------------|----------------------------------------------------|
    | `NODE_ENV`         | `production`                                        |
-   | `DATABASE_URL`     | your Atlas `mongodb+srv://…` string                 |
+   | `DATABASE_URL`     | your Atlas `mongodb+srv://...` string               |
    | `JWT_SECRET`       | a long random string (reserved for future auth)     |
    | `MAX_FILE_SIZE_MB` | `5`                                                 |
    | `UPLOAD_DIR`       | `/tmp/uploads`                                      |
@@ -106,18 +106,18 @@ Serverless functions differ from a long-lived server in ways that matter here:
   files Multer writes during one invocation do not persist and are not shared
   across instances. An upload still returns `201` and its **metadata record is
   created**, but the stored bytes may disappear on the next cold start. This is
-  why `UPLOAD_DIR` is `/tmp/uploads` in production — an accepted limitation.
+  why `UPLOAD_DIR` is `/tmp/uploads` in production, an accepted limitation.
 - **Cold starts.** An idle function is torn down; the next request pays a
   startup cost and re-establishes the Mongo connection (hence the cached
   connection in `api/index.ts`).
 - **No long-lived processes.** There is no persistent `listen`, no background
   work, and the process-level handlers (`SIGTERM`/`SIGINT` graceful shutdown,
-  `unhandledRejection`) are effectively **dev-only** — Vercel owns the lifecycle.
+  `unhandledRejection`) are effectively **dev-only**; Vercel owns the lifecycle.
 
 ### Production file handling (the real fix)
 
 Local disk storage is a development convenience. In production, file bytes
-belong in **object storage** — **AWS S3** or **Cloudinary** — not on the
+belong in **object storage** such as **AWS S3** or **Cloudinary**, not on the
 function's disk:
 
 - Replace Multer's disk storage with a **stream to the storage SDK** (e.g.
@@ -137,14 +137,14 @@ boundary it must not cross:
 src/
 ├── config/          env.ts (validated config), db.ts (Mongoose connection),
 │                    crashHandler.ts (uncaughtException, imported first)
-├── models/          Media.ts — Mongoose schema + indexes + IMedia interface
-├── repositories/    mediaRepository.ts — the ONLY layer that touches Mongoose
-├── services/        mediaService.ts — the ONLY layer with business logic
-├── controllers/     mediaController.ts — maps req/res; no Mongoose, no logic
-├── routes/          mediaRoutes.ts — middleware chains + controller refs only
+├── models/          Media.ts: Mongoose schema + indexes + IMedia interface
+├── repositories/    mediaRepository.ts: the ONLY layer that touches Mongoose
+├── services/        mediaService.ts: the ONLY layer with business logic
+├── controllers/     mediaController.ts: maps req/res; no Mongoose, no logic
+├── routes/          mediaRoutes.ts: middleware chains + controller refs only
 ├── middlewares/     errorHandler, notFound, validate, upload
 ├── utils/           AppError, catchAsync, apiResponse
-├── schemas/         mediaSchemas.ts — Zod schemas (+ inferred input types)
+├── schemas/         mediaSchemas.ts: Zod schemas (+ inferred input types)
 └── app.ts           builds the Express app (no listen, no DB)
 server.ts            connects DB, starts listening, owns process-level handlers
 tsconfig.json        strict TypeScript config (module/resolution: node16)
@@ -152,27 +152,27 @@ uploads/             stored files (gitignored; thumbnails/ generated by sharp)
 dist/                compiled JavaScript output (gitignored; `npm run build`)
 ```
 
-- **routes** — declare HTTP method, path, and the middleware chain. Zero logic.
-- **controllers** — read the request, call a service, shape the HTTP response
+- **routes**: declare HTTP method, path, and the middleware chain. Zero logic.
+- **controllers**: read the request, call a service, shape the HTTP response
   with `sendSuccess`. Never import Mongoose.
-- **services** — all business rules; call repositories and throw `AppError`.
+- **services**: all business rules; call repositories and throw `AppError`.
   Never touch `req`/`res`.
-- **repositories** — all Mongoose queries and nothing else. Merge the
+- **repositories**: all Mongoose queries and nothing else. Merge the
   soft-delete guard (`deletedAt: null`) into every read.
-- **app.ts vs server.ts** — `app.ts` builds the app; `server.ts` owns the
+- **app.ts vs server.ts**: `app.ts` builds the app; `server.ts` owns the
   process (DB connect, `listen`, signal handlers).
 
-## Data model — `Media`
+## Data model: `Media`
 
 | Field          | Type       | Rules                                                          |
 |----------------|------------|----------------------------------------------------------------|
 | `title`        | String     | required, trimmed, text-indexed for full-text search           |
 | `tags`         | [String]   | default `[]`, each lowercased + trimmed                        |
 | `category`     | String     | required enum: `image`, `document`, `video`, `audio`, `other`  |
-| `filePath`     | String     | required — path written by Multer                             |
-| `originalName` | String     | required — original uploaded filename                         |
-| `mimeType`     | String     | required — the file's MIME type                               |
-| `fileSize`     | Number     | required — size in bytes                                      |
+| `filePath`     | String     | required, path written by Multer                              |
+| `originalName` | String     | required, original uploaded filename                          |
+| `mimeType`     | String     | required, the file's MIME type                                |
+| `fileSize`     | Number     | required, size in bytes                                       |
 | `thumbnailPath`| String     | 200px thumbnail path for images; `null` for PDFs              |
 | `deletedAt`    | Date       | soft-delete marker; `null` = active                           |
 | `createdAt` / `updatedAt` | Date | managed by the `timestamps` schema option              |
@@ -200,7 +200,7 @@ Success:
 { "status": "success", "data": { } }
 ```
 
-Error (an **operational error** — an expected, handled failure, not a
+Error (an **operational error**, an expected and handled failure, not a
 programmer bug):
 
 ```json
@@ -255,7 +255,7 @@ curl -X POST http://localhost:3000/media \
   -F "category=image"
 ```
 
-`400 Bad Request` — field-level `details`:
+`400 Bad Request` with field-level `details`:
 
 ```json
 {
@@ -268,13 +268,13 @@ curl -X POST http://localhost:3000/media \
 ```
 
 Other 400s: an unsupported **MIME type** (`Unsupported file type: text/plain`),
-a file above `MAX_FILE_SIZE` (`File too large — max 5MB`, never a 500), and a
+a file above `MAX_FILE_SIZE` (`File too large, max 5MB`, never a 500), and a
 malformed `:id` (`Invalid id: must be a 24-character hex ObjectId`, caught
 before it becomes a Mongoose `CastError`).
 
-### GET /media — pagination metadata
+### GET /media: pagination metadata
 
-Query parameters: `page` (int ≥1, default 1), `limit` (int 1–50, default 10),
+Query parameters: `page` (int >= 1, default 1), `limit` (int 1 to 50, default 10),
 `category` (enum), `tags` (comma-separated), `search` (full-text on title),
 `sortBy` (`createdAt` | `title` | `fileSize`, default `createdAt`), `order`
 (`asc` | `desc`, default `desc`), `includeDeleted` (boolean).
@@ -283,7 +283,7 @@ Query parameters: `page` (int ≥1, default 1), `limit` (int 1–50, default 10)
 curl "http://localhost:3000/media?category=image&tags=nature,sky&search=report&sortBy=fileSize&order=asc&page=2&limit=10"
 ```
 
-`200 OK` — results plus a **pagination metadata** object:
+`200 OK` with results plus a **pagination metadata** object:
 
 ```json
 {
@@ -296,20 +296,20 @@ curl "http://localhost:3000/media?category=image&tags=nature,sky&search=report&s
 ```
 
 Requesting a page beyond `totalPages` returns an empty `results` array with
-correct pagination metadata — not an error.
+correct pagination metadata, not an error.
 
 ## PUT vs PATCH
 
 The brief lists `PUT`, but both are implemented:
 
-- **PUT `/media/:id`** — the rubric route. Semantically a *full* replacement of
+- **PUT `/media/:id`**: the rubric route. Semantically a *full* replacement of
   the editable metadata. Validated with `updateMediaSchema`.
-- **PATCH `/media/:id`** — the semantically correct *partial* update: send only
+- **PATCH `/media/:id`**: the semantically correct *partial* update: send only
   the fields you want to change.
 
 Both share `updateMediaSchema`, which marks every field optional and uses a
 `.refine` to reject an empty body (`At least one field ... must be provided`).
-In this API their runtime behavior is identical — the distinction is HTTP
+In this API their runtime behavior is identical; the distinction is HTTP
 semantics: PUT signals "replace the resource's metadata", PATCH signals "merge
 these fields". PATCH is the recommendation for clients doing targeted edits.
 
@@ -317,16 +317,16 @@ these fields". PATCH is the recommendation for clients doing targeted edits.
 
 Per the brief, `DELETE /media/:id` is a **hard delete by default**: it removes
 the database record *and* unlinks the file and its thumbnail from disk. If a
-file is already missing on disk, the API logs it and still deletes the record —
+file is already missing on disk, the API logs it and still deletes the record;
 a missing file never produces a 500.
 
 Soft delete is opt-in:
 
-- `DELETE /media/:id?soft=true` — sets `deletedAt` and **keeps** the file.
-- `POST /media/:id/restore` — clears `deletedAt`.
+- `DELETE /media/:id?soft=true`: sets `deletedAt` and **keeps** the file.
+- `POST /media/:id/restore`: clears `deletedAt`.
 - Reads exclude soft-deleted records by default; the repository merges
   `deletedAt: null` into every read filter so it cannot be forgotten.
-- `GET /media?includeDeleted=true` — escape hatch to include soft-deleted items.
+- `GET /media?includeDeleted=true`: escape hatch to include soft-deleted items.
 
 ## Testing checklist
 
