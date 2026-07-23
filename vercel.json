@@ -2,11 +2,13 @@
   "version": 2,
   "builds": [
     { "src": "api/index.ts", "use": "@vercel/node" },
-    { "src": "public/**", "use": "@vercel/static" }
+    { "src": "web/package.json", "use": "@vercel/static-build", "config": { "distDir": "dist" } }
   ],
   "routes": [
-    { "src": "/", "dest": "/public/index.html" },
-    { "src": "/(.+\\.(?:css|js|png|jpe?g|svg|ico|webp|woff2?|map))", "dest": "/public/$1" },
-    { "src": "/(.*)", "dest": "api/index.ts" }
+    { "src": "/media(.*)", "dest": "api/index.ts" },
+    { "src": "/health", "dest": "api/index.ts" },
+    { "src": "/uploads/(.*)", "dest": "api/index.ts" },
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
