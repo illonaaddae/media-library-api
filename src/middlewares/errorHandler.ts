@@ -12,7 +12,7 @@ import logger from '../config/logger';
 function multerMessage(err: multer.MulterError): string {
   switch (err.code) {
     case 'LIMIT_FILE_SIZE':
-      return 'File too large, max 5MB';
+      return `File too large, max ${Math.round(config.maxFileSize / (1024 * 1024))}MB`;
     case 'LIMIT_FILE_COUNT':
       return 'Too many files uploaded';
     case 'LIMIT_UNEXPECTED_FILE':

@@ -71,6 +71,21 @@ describe('POST /media', () => {
     expect(res.body.status).toBe('error');
     expect(res.body.message).toMatch(/unsupported file type/i);
   });
+
+  it('201 accepts a video file (video/mp4)', async () => {
+    const res = await request(app)
+      .post('/media')
+      .field('title', 'Demo clip')
+      .field('category', 'video')
+      .attach('file', JPEG, { filename: 'clip.mp4', contentType: 'video/mp4' });
+
+    expect(res.status).toBe(201);
+    expect(res.body.status).toBe('success');
+    expect(res.body.data.category).toBe('video');
+    expect(res.body.data.mimeType).toBe('video/mp4');
+    // No thumbnail is generated for non-image types.
+    expect(res.body.data.thumbnailPath).toBeNull();
+  });
 });
 
 describe('GET /media', () => {

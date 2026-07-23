@@ -11,7 +11,25 @@ import AppError from "../utils/AppError";
 // Ensure the upload directory exists before Multer writes to it.
 fs.mkdirSync(config.uploadDir, { recursive: true });
 
-const ALLOWED_MIME = new Set(["image/jpeg", "image/png", "application/pdf"]);
+const ALLOWED_MIME = new Set([
+  // images
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  // documents
+  "application/pdf",
+  "application/msword", // .doc
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // .docx
+  // video
+  "video/mp4",
+  "video/webm",
+  "video/quicktime", // .mov
+  // audio
+  "audio/mpeg", // .mp3
+  "audio/wav",
+  "audio/ogg",
+]);
 
 // Strip path separators and unsafe characters from an original filename.
 // Never trust the client-supplied name — collapse it to a safe basename.

@@ -12,7 +12,7 @@ failure, uses one consistent JSON envelope.
 - **Runtime:** Node.js + Express 5
 - **Database:** MongoDB via Mongoose
 - **Validation:** Zod (one reusable middleware, field-level error details)
-- **Uploads:** Multer (disk storage, 5MB cap, JPEG/PNG/PDF only by MIME type)
+- **Uploads:** Multer (disk storage, size cap from `MAX_FILE_SIZE_MB`, MIME allowlist covering image, PDF, Office doc, video, and audio types)
 - **Thumbnails:** sharp (200px-wide thumbnail per image)
 - **Config:** dotenv-flow (per-environment files) + Zod startup validation (fail fast)
 - **Logging:** Pino structured logs (`pino-http`; `pino-pretty` in development)
@@ -113,6 +113,10 @@ Serverless functions differ from a long-lived server in ways that matter here:
 - **No long-lived processes.** There is no persistent `listen`, no background
   work, and the process-level handlers (`SIGTERM`/`SIGINT` graceful shutdown,
   `unhandledRejection`) are effectively **dev-only**; Vercel owns the lifecycle.
+- **Request body size.** Serverless functions cap the request body (about
+  4.5 MB), so large video and audio uploads work locally but would need a
+  direct-to-storage flow (a presigned S3 or Cloudinary upload) in production.
+  Raising `MAX_FILE_SIZE_MB` helps locally but does not lift the platform cap.
 
 ### Production file handling (the real fix)
 
@@ -268,7 +272,8 @@ curl -X POST http://localhost:3000/media \
 ```
 
 Other 400s: an unsupported **MIME type** (`Unsupported file type: text/plain`),
-a file above `MAX_FILE_SIZE` (`File too large, max 5MB`, never a 500), and a
+a file above `MAX_FILE_SIZE_MB` (`File too large, max NMB` where N is the
+configured limit, never a 500), and a
 malformed `:id` (`Invalid id: must be a 24-character hex ObjectId`, caught
 before it becomes a Mongoose `CastError`).
 
@@ -330,9 +335,9 @@ Soft delete is opt-in:
 
 ## Testing checklist
 
-- Upload valid JPEG/PNG/PDF → `201` with all metadata fields stored.
+- Upload an allowed type (JPEG/PNG/WebP/GIF, PDF, DOC/DOCX, MP4/WebM/MOV, MP3/WAV/OGG) → `201` with all metadata fields stored.
 - Upload a `.txt`/`.exe` → `400` unsupported MIME type.
-- Upload a file above 5MB → `400` (never `500`).
+- Upload a file above `MAX_FILE_SIZE_MB` → `400` (never `500`).
 - POST with no file → `400` "File is required".
 - POST missing `title` → `400` with `details: [{ field: "title", ... }]`.
 - Invalid `category` enum → `400`.
