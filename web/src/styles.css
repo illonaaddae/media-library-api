@@ -1,14 +1,20 @@
-:root {
+:root, :root[data-theme="dark"] {
   --bg: #0f1115; --surface: #181b22; --surface-2: #20242e; --border: #2b303b;
   --text: #e6e9ef; --muted: #9aa4b2; --accent: #6d9dff; --accent-2: #4f7fe0;
   --ok: #35c47f; --warn: #e0a83d; --danger: #e55c5c; --radius: 14px;
   --shadow: 0 6px 24px rgba(0, 0, 0, .35);
 }
+/* Light palette: used when the OS prefers light and no explicit choice is set. */
 @media (prefers-color-scheme: light) {
-  :root {
+  :root:not([data-theme]) {
     --bg: #f4f6fb; --surface: #fff; --surface-2: #f0f2f8; --border: #e2e6ef;
     --text: #1a1f2b; --muted: #5b6472; --shadow: 0 6px 20px rgba(30, 40, 80, .08);
   }
+}
+/* Explicit toggle wins over the OS preference. */
+:root[data-theme="light"] {
+  --bg: #f4f6fb; --surface: #fff; --surface-2: #f0f2f8; --border: #e2e6ef;
+  --text: #1a1f2b; --muted: #5b6472; --shadow: 0 6px 20px rgba(30, 40, 80, .08);
 }
 * { box-sizing: border-box; }
 body {
@@ -26,6 +32,8 @@ header .logo { font-size: 24px; }
 .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); }
 .dot.ok { background: var(--ok); box-shadow: 0 0 0 3px rgba(53, 196, 127, .2); }
 .dot.down { background: var(--danger); box-shadow: 0 0 0 3px rgba(229, 92, 92, .2); }
+.theme-toggle { background: transparent; border: 1px solid var(--border); color: var(--text); padding: 6px 10px; font-size: 15px; line-height: 1; border-radius: 10px; cursor: pointer; }
+.theme-toggle:hover { background: var(--surface-2); }
 main { max-width: 1100px; margin: 0 auto; padding: 24px; }
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); }
 .upload { margin-bottom: 22px; }
@@ -81,3 +89,17 @@ button.danger:hover { background: rgba(229, 92, 92, .1); }
 .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255, 255, 255, .4); border-top-color: #fff; border-radius: 50%; animation: spin .6s linear infinite; vertical-align: -2px; }
 @keyframes spin { to { transform: rotate(360deg); } }
 @media (max-width: 560px) { form.grid { grid-template-columns: 1fr; } }
+
+/* polish */
+.media { transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease; }
+.media:hover { transform: translateY(-3px); border-color: var(--accent); }
+.thumb img { transition: transform .35s ease; }
+.media:hover .thumb img { transform: scale(1.05); }
+.empty-icon { font-size: 44px; opacity: .55; margin-bottom: 6px; }
+.empty p { margin: 0; }
+.dropzone { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 26px; border: 1.5px dashed var(--border); border-radius: 12px; background: var(--surface-2); cursor: pointer; text-align: center; transition: border-color .15s ease, background .15s ease; }
+.dropzone:hover { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 7%, var(--surface-2)); }
+.dropzone input[type=file] { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.dz-icon { font-size: 22px; }
+.dz-main { font-weight: 600; }
+.dz-hint { font-size: 12px; color: var(--muted); }

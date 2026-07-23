@@ -25,6 +25,21 @@ export default function App() {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const toastId = useRef(0);
 
+  // Theme: follow the OS by default; an explicit toggle overrides and persists.
+  const [theme, setTheme] = useState<string | null>(() => localStorage.getItem('theme'));
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme) root.setAttribute('data-theme', theme);
+    else root.removeAttribute('data-theme');
+  }, [theme]);
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const effectiveTheme = theme ?? (prefersDark ? 'dark' : 'light');
+  const toggleTheme = () => {
+    const next = effectiveTheme === 'dark' ? 'light' : 'dark';
+    setTheme(next);
+    localStorage.setItem('theme', next);
+  };
+
   const notify = useCallback((message: string, type: 'ok' | 'err' = 'ok') => {
     const id = ++toastId.current;
     setToasts((t) => [...t, { id, message, type }]);
@@ -73,6 +88,14 @@ export default function App() {
         <span className="logo">🎬</span>
         <h1>Media Library</h1>
         <HealthBadge />
+        <button
+          className="theme-toggle"
+          onClick={toggleTheme}
+          title="Toggle light and dark"
+          aria-label="Toggle theme"
+        >
+          {effectiveTheme === 'dark' ? '☀️' : '🌙'}
+        </button>
       </header>
 
       <main>
@@ -117,14 +140,17 @@ export default function App() {
             >
               <option value="createdAt:desc">Newest</option>
               <option value="createdAt:asc">Oldest</option>
-              <option value="title:asc">Title A–Z</option>
+              <option value="title:asc">Title A to Z</option>
               <option value="fileSize:desc">Largest</option>
             </select>
           </div>
         </div>
 
         {items.length === 0 ? (
-          <div className="empty">No media yet — upload something above.</div>
+          <div className="empty">
+            <div className="empty-icon">📁</div>
+            <p>No media yet. Upload a file above to get started.</p>
+          </div>
         ) : (
           <div className="grid-gallery">
             {items.map((m) => (
