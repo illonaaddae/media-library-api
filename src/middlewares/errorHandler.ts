@@ -37,9 +37,9 @@ const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
   } else if (err instanceof mongoose.Error.ValidationError) {
     statusCode = 400;
     message = 'Validation failed';
-    details = Object.values(err.errors).map((e) => ({
-      field: e.path,
-      message: e.message,
+    details = Object.values(err.errors).map((validationError) => ({
+      field: validationError.path,
+      message: validationError.message,
     }));
   } else if (err instanceof mongoose.Error.CastError) {
     statusCode = 400;

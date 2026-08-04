@@ -1,13 +1,13 @@
 // Unit test: the validate() middleware factory. Called directly with fake
 // req/res/next — no HTTP stack, so these are unit tests.
 import type { Request, Response, NextFunction } from 'express';
-import { z } from 'zod';
+import { z as zod } from 'zod';
 import validate from '../../middlewares/validate';
 import AppError from '../../utils/AppError';
 
 describe('validate middleware', () => {
   it('calls next() and replaces req[source] with parsed/coerced data on valid input', () => {
-    const schema = z.object({ count: z.coerce.number() });
+    const schema = zod.object({ count: zod.coerce.number() });
     const req = { body: { count: '5' } } as unknown as Request;
     const next = jest.fn();
 
@@ -19,7 +19,7 @@ describe('validate middleware', () => {
   });
 
   it('forwards a 400 AppError with field-level details on invalid input', () => {
-    const schema = z.object({ title: z.string() });
+    const schema = zod.object({ title: zod.string() });
     const req = { body: {} } as unknown as Request;
     const next = jest.fn();
 
@@ -34,7 +34,7 @@ describe('validate middleware', () => {
   });
 
   it('validates the requested source (query) rather than body', () => {
-    const schema = z.object({ q: z.string() });
+    const schema = zod.object({ q: zod.string() });
     const req = { query: { q: 'hello' } } as unknown as Request;
     const next = jest.fn();
 

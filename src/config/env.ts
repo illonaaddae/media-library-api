@@ -2,7 +2,7 @@
 // validate required environment variables at startup with a Zod schema on
 // process.env. Fail fast, naming the offending var, then exit(1).
 import { config as loadEnvFiles } from 'dotenv-flow';
-import { z } from 'zod';
+import { z as zod } from 'zod';
 
 // Load .env.<NODE_ENV> (+ .local overrides). When NODE_ENV is unset — as it is
 // for `npm run dev` / `npm start` — default to development so .env.development
@@ -11,26 +11,26 @@ loadEnvFiles({ default_node_env: 'development' });
 
 // Schema describing every environment variable the app relies on. Coercions
 // keep the exported config strongly typed (numbers as numbers, not strings).
-const envSchema = z.object({
-  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
-  PORT: z.coerce.number().int().positive().default(3000),
-  DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
+const envSchema = zod.object({
+  NODE_ENV: zod.enum(['development', 'test', 'production']).default('development'),
+  PORT: zod.coerce.number().int().positive().default(3000),
+  DATABASE_URL: zod.string().min(1, 'DATABASE_URL is required'),
   // Reserved for the future auth extension; the API has no auth yet. Optional
   // until then, but present in .env.example. A blank value (template files
   // leave it empty) is treated as "not set" rather than a hard error.
-  JWT_SECRET: z.preprocess(
-    (v) => (v === '' ? undefined : v),
-    z.string().min(1).optional()
+  JWT_SECRET: zod.preprocess(
+    (value) => (value === '' ? undefined : value),
+    zod.string().min(1).optional()
   ),
-  MAX_FILE_SIZE_MB: z.coerce
+  MAX_FILE_SIZE_MB: zod.coerce
     .number()
     .positive()
     .default(5), // megabytes — converted to bytes below
-  UPLOAD_DIR: z.string().min(1).default('uploads'),
+  UPLOAD_DIR: zod.string().min(1).default('uploads'),
   // Set automatically by Vercel; presence means the serverless runtime, whose
   // filesystem is read-only except /tmp.
-  VERCEL: z.string().optional(),
-  LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
+  VERCEL: zod.string().optional(),
+  LOG_LEVEL: zod.enum(['debug', 'info', 'warn', 'error']).default('info'),
 });
 
 const parsed = envSchema.safeParse(process.env);
