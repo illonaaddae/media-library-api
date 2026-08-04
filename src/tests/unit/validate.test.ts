@@ -1,7 +1,7 @@
 // Unit test: the validate() middleware factory. Called directly with fake
 // req/res/next — no HTTP stack, so these are unit tests.
 import type { Request, Response, NextFunction } from 'express';
-import { z as zod } from 'zod';
+import * as zod from 'zod';
 import validate from '../../middlewares/validate';
 import AppError from '../../utils/AppError';
 

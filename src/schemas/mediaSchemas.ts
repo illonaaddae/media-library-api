@@ -1,7 +1,7 @@
 // schemas/mediaSchemas.ts — Zod schemas for request validation.
 // Multipart forms deliver everything as strings, so tags/numbers/booleans are
 // coerced or transformed here rather than assumed to arrive typed.
-import { z as zod } from 'zod';
+import * as zod from 'zod';
 import { CATEGORIES } from '../models/Media';
 
 // tags may arrive as a real array (JSON) or a comma-separated string (multipart
