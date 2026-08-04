@@ -129,13 +129,14 @@ File bytes belong in object storage, not on the function's disk. This app
 implements that with **Vercel Blob**:
 
 - Multer uses **in-memory storage**; the buffer is handed to `src/services/storage.ts`.
-- When `BLOB_READ_WRITE_TOKEN` is present (auto-set once a Blob store is linked),
+- When a Blob store is linked (Vercel injects either `BLOB_READ_WRITE_TOKEN` or,
+  with OIDC auth, `BLOB_STORE_ID` + a runtime `VERCEL_OIDC_TOKEN`),
   `storage.saveFile` uploads to Vercel Blob and returns the public URL; sharp
   thumbnails are uploaded the same way. The returned URL is stored in Mongo as
   `filePath` / `thumbnailPath` and served straight from the Blob CDN.
-- Without the token (local dev, tests) it falls back to disk under `UPLOAD_DIR`,
-  served via `/uploads`. Either way the stored reference drops straight into an
-  `<img src>`, so the same code path works in both environments.
+- With no store linked (local dev, tests) it falls back to disk under
+  `UPLOAD_DIR`, served via `/uploads`. Either way the stored reference drops
+  straight into an `<img src>`, so the same code path works in both environments.
 - Deletes remove the Blob object (or the disk file) alongside the DB record.
 
 ## Folder structure

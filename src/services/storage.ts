@@ -12,9 +12,12 @@ import { put, del } from '@vercel/blob';
 import config from '../config/env';
 import logger from '../config/logger';
 
-// Blob is used only when its token is present (auto-injected by Vercel when a
-// Blob store is linked to the project). Absent locally, so dev/tests use disk.
-const useBlob = !!process.env.BLOB_READ_WRITE_TOKEN;
+// Use Vercel Blob when a store is linked to the project. Vercel injects either a
+// classic read/write token (BLOB_READ_WRITE_TOKEN) or, with OIDC auth, a store
+// id (BLOB_STORE_ID) plus a runtime VERCEL_OIDC_TOKEN. The @vercel/blob SDK
+// resolves whichever is present automatically, so we just detect either. Absent
+// locally, so dev/tests fall back to disk.
+const useBlob = !!(process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID);
 
 // Collapse a client-supplied name to a safe basename fragment.
 function sanitize(original: string): string {
