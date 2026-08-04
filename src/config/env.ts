@@ -2,7 +2,7 @@
 // validate required environment variables at startup with a Zod schema on
 // process.env. Fail fast, naming the offending var, then exit(1).
 import { config as loadEnvFiles } from 'dotenv-flow';
-import { z as zod } from 'zod';
+import * as zod from 'zod';
 
 // Load .env.<NODE_ENV> (+ .local overrides). When NODE_ENV is unset — as it is
 // for `npm run dev` / `npm start` — default to development so .env.development
