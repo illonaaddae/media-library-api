@@ -89,48 +89,54 @@ local/dev entry only.
    | `NODE_ENV`         | `production`                                        |
    | `DATABASE_URL`     | your Atlas `mongodb+srv://...` string               |
    | `JWT_SECRET`       | a long random string (reserved for future auth)     |
-   | `MAX_FILE_SIZE_MB` | `5`                                                 |
+   | `MAX_FILE_SIZE_MB` | `50`                                                |
    | `UPLOAD_DIR`       | `/tmp/uploads`                                      |
    | `LOG_LEVEL`        | `info`                                              |
 
-4. **Deploy** (automatic on push to `main`, or the dashboard **Deploy** button),
+4. **Create a Vercel Blob store** (Vercel dashboard → Storage → Create → Blob,
+   then connect it to this project). This auto-injects `BLOB_READ_WRITE_TOKEN`
+   into the project's environment. With the token present the app stores uploads
+   in Vercel Blob (durable, CDN-served); without it, it falls back to disk (fine
+   locally, ephemeral on Vercel).
+5. **Deploy** (automatic on push to `main`, or the dashboard **Deploy** button),
    then verify: `curl https://media-library-api-seven.vercel.app/health`.
-5. Point Postman's **Production** environment `BASE_URL` at the live URL and run
+6. Point Postman's **Production** environment `BASE_URL` at the live URL and run
    the collection in `postman/`.
 
 ### Vercel limitations
 
 Serverless functions differ from a long-lived server in ways that matter here:
 
-- **Ephemeral filesystem.** Only `/tmp` is writable, and it is **not durable**:
-  files Multer writes during one invocation do not persist and are not shared
-  across instances. An upload still returns `201` and its **metadata record is
-  created**, but the stored bytes may disappear on the next cold start. This is
-  why `UPLOAD_DIR` is `/tmp/uploads` in production, an accepted limitation.
+- **Ephemeral filesystem, solved with object storage.** Only `/tmp` is writable
+  on Vercel and it is not durable: files written during one invocation are not
+  shared across instances and vanish when an instance recycles. Rather than
+  accept broken images, the app persists uploads to **Vercel Blob** in
+  production (see "File storage" below), so bytes are durable and CDN-served
+  from every instance. Disk storage remains the local/dev path.
 - **Cold starts.** An idle function is torn down; the next request pays a
   startup cost and re-establishes the Mongo connection (hence the cached
   connection in `api/index.ts`).
 - **No long-lived processes.** There is no persistent `listen`, no background
   work, and the process-level handlers (`SIGTERM`/`SIGINT` graceful shutdown,
   `unhandledRejection`) are effectively **dev-only**; Vercel owns the lifecycle.
-- **Request body size.** Serverless functions cap the request body (about
-  4.5 MB), so large video and audio uploads work locally but would need a
-  direct-to-storage flow (a presigned S3 or Cloudinary upload) in production.
-  Raising `MAX_FILE_SIZE_MB` helps locally but does not lift the platform cap.
+- **Request body size.** Vercel Functions accept request bodies up to 100 MB, so
+  the configured `MAX_FILE_SIZE_MB` (50) is comfortably within the platform cap;
+  video and audio uploads work in production, not just locally.
 
-### Production file handling (the real fix)
+### File storage
 
-Local disk storage is a development convenience. In production, file bytes
-belong in **object storage** such as **AWS S3** or **Cloudinary**, not on the
-function's disk:
+File bytes belong in object storage, not on the function's disk. This app
+implements that with **Vercel Blob**:
 
-- Replace Multer's disk storage with a **stream to the storage SDK** (e.g.
-  `multer-s3`, or Multer memory storage piped into the S3/Cloudinary SDK) in the
-  upload middleware.
-- Persist only the returned **object URL + metadata** in Mongo (the bucket URL
-  replaces `filePath`); sharp thumbnails are uploaded the same way.
-- Serve files from the bucket/CDN rather than the API. Uploads then become
-  durable, shared across instances, and independent of the function lifecycle.
+- Multer uses **in-memory storage**; the buffer is handed to `src/services/storage.ts`.
+- When `BLOB_READ_WRITE_TOKEN` is present (auto-set once a Blob store is linked),
+  `storage.saveFile` uploads to Vercel Blob and returns the public URL; sharp
+  thumbnails are uploaded the same way. The returned URL is stored in Mongo as
+  `filePath` / `thumbnailPath` and served straight from the Blob CDN.
+- Without the token (local dev, tests) it falls back to disk under `UPLOAD_DIR`,
+  served via `/uploads`. Either way the stored reference drops straight into an
+  `<img src>`, so the same code path works in both environments.
+- Deletes remove the Blob object (or the disk file) alongside the DB record.
 
 ## Folder structure
 

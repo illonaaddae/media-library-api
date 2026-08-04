@@ -61,7 +61,7 @@ export default function UploadForm({ onUploaded, notify }: Props) {
             />
             <span className="dz-icon">⬆</span>
             <span className="dz-main">{fileName || 'Click to choose a file, or drop it here'}</span>
-            <span className="dz-hint">jpeg, png or pdf, up to 5MB</span>
+            <span className="dz-hint">images, video, audio, PDF or Word docs, up to 50MB</span>
           </label>
         </div>
         <div className="full">

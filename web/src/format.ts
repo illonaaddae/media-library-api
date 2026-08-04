@@ -10,11 +10,25 @@ export const CAT_ICON: Record<Category, string> = {
 
 const baseName = (p: string): string => p.split(/[\\/]/).pop() ?? '';
 
-// Build a servable URL for a media item's image (thumbnail preferred). Returns
-// null for non-images so the card falls back to a category icon.
+// Normalize a stored reference into a browser-usable URL. Handles absolute Blob
+// URLs (used as-is), /uploads web paths (used as-is), and legacy disk paths
+// (reduced to their basename under /uploads).
+function toUrl(ref: string): string {
+  if (/^https?:\/\//.test(ref)) return ref;
+  if (ref.startsWith('/uploads/')) return ref;
+  return `/uploads/${baseName(ref)}`;
+}
+
+// The full uploaded file's URL (used for the "view" action / opening originals).
+export function fileUrl(m: Media): string {
+  return toUrl(m.filePath);
+}
+
+// Preview image URL (thumbnail preferred). Returns null for non-images so the
+// card falls back to a category icon.
 export function imageUrl(m: Media): string | null {
-  if (m.thumbnailPath) return `/uploads/thumbnails/${baseName(m.thumbnailPath)}`;
-  if (m.filePath && m.mimeType.startsWith('image/')) return `/uploads/${baseName(m.filePath)}`;
+  if (m.thumbnailPath) return toUrl(m.thumbnailPath);
+  if (m.filePath && m.mimeType.startsWith('image/')) return toUrl(m.filePath);
   return null;
 }
 

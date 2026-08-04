@@ -13,7 +13,7 @@ export const createMedia = catchAsync(async (req, res) => {
   // file was sent — the service raises 400 "File is required").
   const fileInfo: FileInfo | null = req.file
     ? {
-        filePath: req.file.path,
+        buffer: req.file.buffer,
         originalName: req.file.originalname,
         mimeType: req.file.mimetype,
         fileSize: req.file.size,
@@ -29,7 +29,7 @@ export const createMedia = catchAsync(async (req, res) => {
 export const createBulkMedia = catchAsync(async (req, res) => {
   const files = (req.files as Express.Multer.File[] | undefined) ?? [];
   const filesInfo: FileInfo[] = files.map((file) => ({
-    filePath: file.path,
+    buffer: file.buffer,
     originalName: file.originalname,
     mimeType: file.mimetype,
     fileSize: file.size,

@@ -1,61 +1,68 @@
 // services/mediaService.ts — the ONLY layer with business logic. Never touches
-// req/res; calls the repository and throws AppError. Owns file-system side
-// effects (unlinking uploaded files) since those are business rules, not data
+// req/res; calls the repository and throws AppError. Owns storage side effects
+// (persisting and removing files) since those are business rules, not data
 // access.
-import fs from 'fs/promises';
-import fsSync from 'fs';
-import path from 'path';
 import sharp from 'sharp';
 import { QueryFilter, SortOrder } from 'mongoose';
 import mediaRepository from '../repositories/mediaRepository';
 import AppError from '../utils/AppError';
-import config from '../config/env';
 import logger from '../config/logger';
+import { saveFile, deleteFile } from './storage';
 import { IMedia, MediaDocument } from '../models/Media';
 import { CreateMediaInput, UpdateMediaInput, MediaQuery } from '../schemas/mediaSchemas';
 
-// File metadata assembled by the controller from Multer's req.file / req.files.
+// File payload assembled by the controller from Multer's in-memory req.file /
+// req.files. The buffer is persisted by the storage module; it is never stored
+// on the document.
 export interface FileInfo {
-  filePath: string;
+  buffer: Buffer;
   originalName: string;
   mimeType: string;
   fileSize: number;
 }
 
-// Thumbnails live under uploads/thumbnails/. Ensure it exists at startup.
-const THUMBNAIL_DIR = path.join(config.uploadDir, 'thumbnails');
-fsSync.mkdirSync(THUMBNAIL_DIR, { recursive: true });
+// Metadata persisted on the document once the bytes are stored.
+interface StoredFileMeta {
+  filePath: string;
+  originalName: string;
+  mimeType: string;
+  fileSize: number;
+  thumbnailPath: string | null;
+}
 
 const THUMBNAIL_WIDTH = 200;
 
-// Generate a 200px-wide thumbnail for image uploads only. A failure here must
-// never fail the upload — log and fall back to a null thumbnailPath. Returns
-// the thumbnail path, or null for non-images / on error.
+// Generate and store a 200px-wide thumbnail for image uploads only. A failure
+// here must never fail the upload — log and fall back to a null thumbnail.
+// Returns the stored thumbnail reference, or null for non-images / on error.
 async function generateThumbnail(fileInfo: FileInfo): Promise<string | null> {
-  if (!fileInfo || !fileInfo.mimeType || !fileInfo.mimeType.startsWith('image/')) {
-    return null; // PDFs and non-images get no thumbnail
+  if (!fileInfo.mimeType || !fileInfo.mimeType.startsWith('image/')) {
+    return null; // PDFs, video, audio, and other non-images get no thumbnail
   }
-  const thumbPath = path.join(THUMBNAIL_DIR, path.basename(fileInfo.filePath));
   try {
-    await sharp(fileInfo.filePath).resize({ width: THUMBNAIL_WIDTH }).toFile(thumbPath);
-    return thumbPath;
+    const thumb = await sharp(fileInfo.buffer).resize({ width: THUMBNAIL_WIDTH }).toBuffer();
+    return await saveFile(thumb, fileInfo.originalName, fileInfo.mimeType, 'thumbnails');
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    logger.warn(`Thumbnail generation failed for "${fileInfo.filePath}": ${message}`);
+    logger.warn(`Thumbnail generation failed for "${fileInfo.originalName}": ${message}`);
     return null;
   }
 }
 
-// Best-effort file removal: a missing file must not fail the request — log and
-// continue so DELETE still removes the DB record. Never throws (never 500s).
-async function safeUnlink(filePath: string | null | undefined): Promise<void> {
-  if (!filePath) return;
-  try {
-    await fs.unlink(filePath);
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    logger.warn(`Could not delete file "${filePath}": ${message}`);
-  }
+// Persist one file (bytes + optional thumbnail) and return the document
+// metadata. Thumbnail generation runs alongside the main store.
+async function storeFile(fileInfo: FileInfo): Promise<StoredFileMeta> {
+  const [filePath, thumbnailPath] = await Promise.all([
+    saveFile(fileInfo.buffer, fileInfo.originalName, fileInfo.mimeType),
+    generateThumbnail(fileInfo),
+  ]);
+  return {
+    filePath,
+    originalName: fileInfo.originalName,
+    mimeType: fileInfo.mimeType,
+    fileSize: fileInfo.fileSize,
+    thumbnailPath,
+  };
 }
 
 // Create one media record. fileInfo is assembled by the controller from
@@ -67,8 +74,8 @@ async function createMedia(
   if (!fileInfo) {
     throw new AppError(400, 'File is required');
   }
-  const thumbnailPath = await generateThumbnail(fileInfo);
-  const media = await mediaRepository.create({ ...metadata, ...fileInfo, thumbnailPath });
+  const stored = await storeFile(fileInfo);
+  const media = await mediaRepository.create({ ...metadata, ...stored });
   logger.info(
     { filename: fileInfo.originalName, size: fileInfo.fileSize },
     'File uploaded'
@@ -76,8 +83,8 @@ async function createMedia(
   return media;
 }
 
-// Bulk create: shared metadata applies to every file. Thumbnails for all
-// images are generated concurrently, then all records are inserted at once.
+// Bulk create: shared metadata applies to every file. Files are stored (bytes +
+// thumbnails) concurrently, then all records are inserted at once.
 async function createManyMedia(
   filesInfo: FileInfo[],
   metadata: CreateMediaInput
@@ -85,12 +92,8 @@ async function createManyMedia(
   if (!filesInfo || filesInfo.length === 0) {
     throw new AppError(400, 'At least one file is required');
   }
-  const thumbnails = await Promise.all(filesInfo.map(generateThumbnail));
-  const docs: Partial<IMedia>[] = filesInfo.map((fileInfo, i) => ({
-    ...metadata,
-    ...fileInfo,
-    thumbnailPath: thumbnails[i],
-  }));
+  const stored = await Promise.all(filesInfo.map(storeFile));
+  const docs: Partial<IMedia>[] = stored.map((meta) => ({ ...metadata, ...meta }));
   return mediaRepository.insertMany(docs);
 }
 
@@ -140,8 +143,8 @@ async function deleteMedia(
 
   await mediaRepository.hardDeleteById(id);
   await Promise.all([
-    safeUnlink(existing.filePath),
-    safeUnlink(existing.thumbnailPath),
+    deleteFile(existing.filePath),
+    deleteFile(existing.thumbnailPath),
   ]);
 
   return existing;
