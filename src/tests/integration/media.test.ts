@@ -57,7 +57,7 @@ describe('POST /media', () => {
 
     expect(res.status).toBe(400);
     expect(res.body.status).toBe('error');
-    expect(res.body.details.map((d: { field: string }) => d.field)).toContain('title');
+    expect(res.body.details.map((detail: { field: string }) => detail.field)).toContain('title');
   });
 
   it('400 on an unsupported file type', async () => {
@@ -92,7 +92,7 @@ describe('GET /media', () => {
   it('returns arithmetically-correct pagination metadata after seeding', async () => {
     // Seed 12 records; page size 5 -> 3 pages.
     await Promise.all(
-      Array.from({ length: 12 }, (_, i) => seedMedia({ title: `item-${i}` }))
+      Array.from({ length: 12 }, (_, index) => seedMedia({ title: `item-${index}` }))
     );
 
     const res = await request(app).get('/media').query({ page: 1, limit: 5 });
@@ -118,7 +118,7 @@ describe('GET /media', () => {
     expect(res.status).toBe(200);
     expect(res.body.data.pagination.total).toBe(2);
     expect(
-      res.body.data.results.every((m: { category: string }) => m.category === 'document')
+      res.body.data.results.every((item: { category: string }) => item.category === 'document')
     ).toBe(true);
   });
 

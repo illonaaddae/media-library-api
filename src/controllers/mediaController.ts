@@ -28,11 +28,11 @@ export const createMedia = catchAsync(async (req, res) => {
 // the parsed files on req.files.
 export const createBulkMedia = catchAsync(async (req, res) => {
   const files = (req.files as Express.Multer.File[] | undefined) ?? [];
-  const filesInfo: FileInfo[] = files.map((f) => ({
-    filePath: f.path,
-    originalName: f.originalname,
-    mimeType: f.mimetype,
-    fileSize: f.size,
+  const filesInfo: FileInfo[] = files.map((file) => ({
+    filePath: file.path,
+    originalName: file.originalname,
+    mimeType: file.mimetype,
+    fileSize: file.size,
   }));
 
   const media = await mediaService.createManyMedia(filesInfo, req.body);
