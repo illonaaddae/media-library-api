@@ -23,7 +23,7 @@
     "dotenv": "^17.4.2",
     "dotenv-flow": "^4.1.0",
     "express": "^5.2.1",
-    "mongoose": "^9.7.3",
+    "mongoose": "^9.11.4",
     "multer": "^2.2.0",
     "pino": "^10.3.1",
     "pino-http": "^11.0.0",
