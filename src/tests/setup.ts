@@ -1,3 +1,4 @@
+import os from 'node:os';
 // src/tests/setup.ts — global test harness.
 // Starts an in-memory MongoDB so tests never touch dev data, cleans every
 // collection between tests, and tears the server down at the end. Registered
@@ -11,7 +12,8 @@ let mongo: MongoMemoryServer;
 // spawns a real mongod process — both exceed Jest's 5s hook default.
 beforeAll(async () => {
   mongo = await MongoMemoryServer.create();
-  await mongoose.connect(mongo.getUri());
+  // Jest does not provide the dynamic import callback used to load the OS adapter.
+  await mongoose.connect(mongo.getUri(), { runtimeAdapters: { os } });
 }, 120_000);
 
 // Wipe every collection after each test to keep tests isolated.
